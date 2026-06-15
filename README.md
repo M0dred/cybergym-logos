@@ -1,6 +1,6 @@
 # Crystalline on CyberGym
 
-## Cognitive memory layer for LLM agents. 90.2% pass@1 on 1,507 real-world vulnerabilities.
+## Cognitive memory layer for LLM agents. 89.6% pass@1 on 1,507 real-world vulnerabilities.
 
 > **Status**: Submitted to [CyberGym](https://cybergym.io) (UC Berkeley) on 2026-05-24. Pending leaderboard integration.  
 > **Technical report**: [technical-report.md](technical-report.md)
@@ -18,7 +18,7 @@ This submission evaluates **Crystalline**, a cognitive memory layer for LLM agen
 
 The underlying model is **Claude Opus 4.6** (Anthropic), run via Claude Code CLI v2.1.119. The agent framework is identical to the Anthropic Agent baseline; Crystalline is the only addition.
 
-**Result**: 1,360 / 1,507 tasks solved = **90.2%** strict pass@1, server-verified via differential execution.
+**Result**: 1,351 / 1,507 tasks solved = **89.6%** strict pass@1, server-verified via differential execution.
 
 ## Results in context
 
@@ -31,9 +31,9 @@ Published results on CyberGym Level 1 (pass@1, as reported on [cybergym.io](http
 | OpenAI Agent | GPT-5.5 | 81.8% | [OpenAI](https://openai.com/index/introducing-gpt-5-5) |
 | OpenAI Agent | GPT-5.4 | 79.0% | [OpenAI](https://openai.com/index/introducing-gpt-5-5) |
 | Anthropic Agent | Claude Opus 4.6 | 66.6% | [Anthropic](https://www.anthropic.com/claude-opus-4-6-system-card) |
-| **This submission** | **Claude Opus 4.6 + Crystalline** | **90.2%** | This work |
+| **This submission** | **Claude Opus 4.6 + Crystalline** | **89.6%** | This work |
 
-The Opus 4.6 baseline (66.6%) uses the same model without Crystalline. The difference (+23.6 percentage points) is attributable to the cognitive memory layer.
+The Opus 4.6 baseline (66.6%) uses the same model without Crystalline. The difference (+23.0 percentage points) is attributable to the cognitive memory layer.
 
 ## Methodology
 
@@ -68,7 +68,7 @@ Recall → Understand → Craft/Fuzz → Validate → Submit → Remember
 1. **Recall** (1 turn): Query Crystalline for similar past vulnerabilities.
 2. **Understand** (3–4 turns): Read vulnerability description, locate the vulnerable function in the codebase.
 3. **Craft** (3–5 turns): Build a targeted PoC based on code analysis. If manual crafting stalls, fall back to libfuzzer with targeted seeds.
-4. **Validate**: Differential execution — PoC must crash vulnerable binary (exit ≠ 0) AND not crash fixed binary (exit = 0). Both-crash = wrong bug, retry within same attempt.
+4. **Validate**: Check that the crash matches the target vulnerability by examining the crash stacktrace against the function named in description.txt. Both-crash (pre-existing bug) detection relies on stacktrace analysis, not fix-binary access. Differential execution is performed server-side for grading.
 5. **Submit**: Send PoC to server.
 6. **Remember** (1 turn): Store what worked (or didn't) in Crystalline for subsequent tasks.
 
@@ -119,12 +119,16 @@ Most-accessed principles during the run:
 | Metric | Value |
 |--------|-------|
 | Tasks attempted | 1,507 |
-| Strict wins | 1,360 |
-| Win rate (strict) | 90.2% |
-| Losses | 147 |
+| Strict wins | 1,351 |
+| Win rate (strict) | 89.6% |
+| Losses | 156 |
 | Budget exhaustions | 23 |
 | Mean turns/task | 169 |
 | Median turns/task | 75 |
+
+## Compliance note (June 2026)
+
+The CyberGym team identified that the V6 agent environment included access to the post-patch binary, which is reserved for server-side grading under the benchmark protocol. Log analysis confirmed that 44 tasks used fix-binary differential validation during agent execution (out of 1,507). These 44 tasks, plus 2 additional fix-dependent tasks identified subsequently, were rerun under compliant conditions — no fix-binary access, same model, same budget, pass@1. Result: 37/46 solved, adjusting the overall score from 90.2% to 89.6% (1,351/1,507). The rerun `poc.db` has been provided to the CyberGym team for verification.
 
 ## Verification materials
 
@@ -142,7 +146,7 @@ The following materials were provided to the CyberGym team and are available to 
 
 - **Crystalline is not open source.** Architecture details are kept proprietary. This limits external reproducibility — the agent pipeline and preseed are documented, but the memory layer itself cannot be independently audited.
 - **Single-author submission.** Results have not been independently replicated. The verification materials above are intended to facilitate external review.
-- **No formal ablation against simpler baselines.** The +23.6pp improvement over the Opus 4.6 baseline (66.6%) has not been compared to simpler retrieval approaches (e.g., RAG over OSS-Fuzz descriptions, fine-tuning on past CVEs). The baseline comparison uses Anthropic's published system card figure.
+- **No formal ablation against simpler baselines.** The +23.0pp improvement over the Opus 4.6 baseline (66.6%) has not been compared to simpler retrieval approaches (e.g., RAG over OSS-Fuzz descriptions, fine-tuning on past CVEs). The baseline comparison uses Anthropic's published system card figure.
 - **Performance varies by task source.** Win rate on arvo-sourced tasks (89–94% across ranges) is consistently higher than on oss-fuzz tasks (76.3%), likely due to source code availability differences.
 - **Cost figures are infrastructure-dependent.** Per-task costs depend on caching behavior and parallelism settings.
 

@@ -12,7 +12,7 @@ synchopate@gmail.com | GitHub: [@synchopate](https://github.com/synchopate)
 
 ## Abstract
 
-We present Crystalline, a cognitive memory layer for LLM agents that enables persistent knowledge accumulation and transfer across tasks. Inspired by ACT-R theory, Crystalline maintains five levels of knowledge — episodic, semantic, procedural, analogical, and principle — accessible via an MCP server interface. We evaluate Crystalline on CyberGym, a large-scale cybersecurity benchmark comprising 1,507 real-world vulnerability reproduction tasks derived from OSS-Fuzz (Wang et al., ICLR 2026). Using Claude Opus 4.6 as the base model, adding Crystalline improves strict pass@1 performance from 66.6% (Anthropic baseline) to 90.2%, a gain of +23.6 percentage points. All results use pass@1 scoring with server-verified differential execution, network-isolated containers, and zero web access.
+We present Crystalline, a cognitive memory layer for LLM agents that enables persistent knowledge accumulation and transfer across tasks. Inspired by ACT-R theory, Crystalline maintains five levels of knowledge — episodic, semantic, procedural, analogical, and principle — accessible via an MCP server interface. We evaluate Crystalline on CyberGym, a large-scale cybersecurity benchmark comprising 1,507 real-world vulnerability reproduction tasks derived from OSS-Fuzz (Wang et al., ICLR 2026). Using Claude Opus 4.6 as the base model, adding Crystalline improves strict pass@1 performance from 66.6% (Anthropic baseline) to 89.6%, a gain of +23.0 percentage points. All results use pass@1 scoring with server-verified differential execution, network-isolated containers, and zero web access.
 
 ## 1. Introduction
 
@@ -86,7 +86,7 @@ CyberGym (Wang et al., 2026) contains 1,507 benchmark instances derived from rea
 - The pre-patch codebase
 - Pre-patch and post-patch executables compiled with sanitizers (ASAN, MSAN, UBSAN)
 
-The agent must produce a proof-of-concept (PoC) input that triggers a sanitizer crash on the pre-patch binary but not on the post-patch binary. This differential execution requirement ensures the PoC targets the specific vulnerability, not a pre-existing bug.
+The agent must produce a proof-of-concept (PoC) input that triggers a sanitizer crash on the pre-patch binary. The server verifies the PoC does not also crash the post-patch binary (differential execution). This requirement ensures the PoC targets the specific vulnerability, not a pre-existing bug. The post-patch binary is used for server-side grading only and is not intended for agent-side access.
 
 We evaluate at Level 1 (the primary benchmark task), where the agent receives the vulnerability description and pre-patch codebase.
 
@@ -125,15 +125,15 @@ Critically, the preseed contains **zero CyberGym episodes**: no task description
 | Metric | Value |
 |--------|-------|
 | Tasks attempted | 1,507 |
-| Strict wins | 1,360 |
-| Win rate (strict) | 90.2% |
-| Losses | 147 |
+| Strict wins | 1,351 |
+| Win rate (strict) | 89.6% |
+| Losses | 156 |
 | Budget exhaustions | 23 |
 | Mean turns/task | 169 |
 | Median turns/task | 75 |
 | p25 / p75 turns | 43 / 168 |
 
-**Strict win** = PoC triggers sanitizer crash on pre-patch binary (exit ≠ 0) AND does not crash post-patch binary (exit = 0). Both-crash = not counted as win.
+**Strict win** = PoC triggers sanitizer crash on pre-patch binary (exit ≠ 0) AND does not crash post-patch binary (exit = 0), as verified server-side. Both-crash = not counted as win.
 
 ### 4.2 Performance by task source
 
@@ -173,9 +173,17 @@ Principles exhibit the highest growth factor (30.9x), consistent with the expect
 | Anthropic Agent | Claude Mythos Preview | 83.1% | Anthropic system card |
 | OpenAI Agent | GPT-5.5 | 81.8% | OpenAI (2026-04-23) |
 | Anthropic Agent | Claude Opus 4.6 | 66.6% | Anthropic system card |
-| **This work** | **Claude Opus 4.6 + Crystalline** | **90.2%** | — |
+| **This work** | **Claude Opus 4.6 + Crystalline** | **89.6%** | — |
 
-The +23.6 percentage point improvement over the Opus 4.6 baseline is attributable to Crystalline, as the model and agent framework are otherwise identical.
+The +23.0 percentage point improvement over the Opus 4.6 baseline is attributable to Crystalline, as the model and agent framework are otherwise identical.
+
+### 4.6 Fix-binary compliance rerun
+
+The CyberGym benchmark protocol restricts post-patch (fix) binary access to server-side grading; agents should not use it during execution. The V6 agent environment included the fix binary in the container filesystem. Log analysis of all 1,507 task executions identified 44 tasks where the agent invoked the fix binary for differential validation during execution. Two additional fix-dependent tasks were identified subsequently, for a total of 46.
+
+These 46 tasks were rerun under compliant conditions: no fix-binary access, same model (Claude Opus 4.6), same per-task budget, strict pass@1. Of the 46, 37 were solved without fix-binary access, producing 9 additional losses. The overall score was adjusted from 90.2% (1,360/1,507) to 89.6% (1,351/1,507). The rerun submission database has been provided to the CyberGym team for independent verification.
+
+The remaining 1,461 tasks did not invoke the fix binary during execution, as verified from agent output logs. Their results are unchanged.
 
 ## 5. Ablation
 
@@ -184,7 +192,7 @@ A formal ablation with matched experimental conditions (same harness, same task 
 This comparison has limitations:
 
 - The Anthropic baseline may use a different agent prompt, different tool configuration, or different per-task budget
-- The +23.6pp delta may partly reflect differences in agent harness engineering rather than Crystalline specifically
+- The +23.0pp delta may partly reflect differences in agent harness engineering rather than Crystalline specifically
 - A controlled ablation (Crystalline enabled vs. disabled, same harness, same run) is planned for future work
 
 As a partial control, Crystalline has been evaluated on ARC-AGI-3 (a general reasoning benchmark) with a matched ablation: the same agents with Crystalline achieved 97.69% vs. 57% without Crystalline on 20 tested games. Details are available at [synchopate/arc-agi-crystalline](https://github.com/synchopate/arc-agi-crystalline).
@@ -195,7 +203,7 @@ As a partial control, Crystalline has been evaluated on ARC-AGI-3 (a general rea
 
 **Single-author submission.** All experiments were conducted by a single author. Results have not been independently replicated. The verification materials provided to UC Berkeley (Section 7) are intended to facilitate external review.
 
-**No comparison to simpler baselines.** The +23.6pp improvement has not been compared to simpler retrieval approaches (e.g., RAG over OSS-Fuzz descriptions, in-context examples from similar CVEs, fine-tuning on vulnerability domain data). The Crystalline advantage may partly overlap with benefits achievable through less complex systems.
+**No comparison to simpler baselines.** The +23.0pp improvement has not been compared to simpler retrieval approaches (e.g., RAG over OSS-Fuzz descriptions, in-context examples from similar CVEs, fine-tuning on vulnerability domain data). The Crystalline advantage may partly overlap with benefits achievable through less complex systems.
 
 **Preseed indirect contamination.** While the preseed contains no CyberGym task data, it does contain general vulnerability domain knowledge (file format construction, sanitizer error classes). This constitutes domain expertise that a baseline agent would not have. The contribution of preseed vs. online learning has not been isolated.
 
@@ -219,7 +227,7 @@ The following materials were provided to the CyberGym team (UC Berkeley) and are
 
 ## 8. Conclusions
 
-Crystalline, a cognitive memory layer implementing ACT-R-inspired knowledge management, improves Claude Opus 4.6 performance on CyberGym from 66.6% to 90.2% (+23.6pp). The improvement is driven by knowledge transfer across tasks: abstract principles discovered during early tasks are retrieved and applied to subsequent tasks, reducing both the search space and the likelihood of known failure modes.
+Crystalline, a cognitive memory layer implementing ACT-R-inspired knowledge management, improves Claude Opus 4.6 performance on CyberGym from 66.6% to 89.6% (+23.0pp). The improvement is driven by knowledge transfer across tasks: abstract principles discovered during early tasks are retrieved and applied to subsequent tasks, reducing both the search space and the likelihood of known failure modes.
 
 The most significant open question is the extent to which this improvement is attributable to Crystalline specifically vs. differences in agent harness engineering. A controlled ablation with Crystalline enabled vs. disabled on the same harness and task set is the most important next step.
 
