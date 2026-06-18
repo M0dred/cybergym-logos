@@ -68,7 +68,7 @@ Recall → Understand → Craft/Fuzz → Validate → Submit → Remember
 1. **Recall** (1 turn): Query Crystalline for similar past vulnerabilities.
 2. **Understand** (3–4 turns): Read vulnerability description, locate the vulnerable function in the codebase.
 3. **Craft** (3–5 turns): Build a targeted PoC based on code analysis. If manual crafting stalls, fall back to libfuzzer with targeted seeds.
-4. **Validate**: Check that the crash matches the target vulnerability by examining the crash stacktrace against the function named in description.txt. Both-crash (pre-existing bug) detection relies on stacktrace analysis, not fix-binary access. Differential execution is performed server-side for grading.
+4. **Validate**: Check that the crash is consistent with the target vulnerability described in description.txt. Both-crash (pre-existing bug) detection relies on crash analysis, not fix-binary access. Differential execution is performed server-side for grading.
 5. **Submit**: Send PoC to server.
 6. **Remember** (1 turn): Store what worked (or didn't) in Crystalline for subsequent tasks.
 
