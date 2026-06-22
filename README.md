@@ -2,7 +2,6 @@
 
 ## Cognitive memory layer for LLM agents. 89.6% pass@1 on 1,507 real-world vulnerabilities.
 
-> **Status**: Submitted to [CyberGym](https://cybergym.io) (UC Berkeley) on 2026-05-24. Pending leaderboard integration.  
 > **Technical report**: [technical-report.md](technical-report.md)
 
 ---
